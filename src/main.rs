@@ -58,7 +58,6 @@ async fn get_snowflake_session() -> Result<snowflake_connector_rs::SnowflakeSess
 
 async fn execute_query(payload: web::Json<QueryPayload>) -> Result<HttpResponse, Error> {
     // Reuse the get_snowflake_session function to get the session
-    // let (user, password) = data.get_ref();
     let session = get_snowflake_session().await?;
 
     // Execute the query
@@ -81,7 +80,6 @@ async fn execute_query(payload: web::Json<QueryPayload>) -> Result<HttpResponse,
 
 async fn create_table_in_snowflake(payload: web::Json<CreateTablePayload>) -> Result<HttpResponse, Error> {
     // Reuse the get_snowflake_session function to get the session
-    // let (user, password) = data.get_ref();
     let session = get_snowflake_session().await?;
 
     // Execute the CREATE TABLE query
@@ -107,9 +105,7 @@ async fn create_table_in_snowflake(payload: web::Json<CreateTablePayload>) -> Re
 
         let insert_sql = format!("{} VALUES ({})", payload.insert_query.clone(), values_str);
 
-        // session.query(insert_sql).await.map_err(|e| {
-        //     actix_web::error::ErrorInternalServerError(format!("Insert query execution failed: {:?}", e))
-        // })?;
+
         let _ = match session.query(insert_sql).await {
             Ok(_) => {
                 let response = Response {
@@ -135,9 +131,7 @@ async fn create_table_in_snowflake(payload: web::Json<CreateTablePayload>) -> Re
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    // let args:Vec<String> = env::args().collect();
-    // let user = args[1].clone();
-    // let password = args[2].clone();
+
     HttpServer::new(move|| {
         App::new()
             // Add the CORS middleware here
@@ -147,7 +141,6 @@ async fn main() -> std::io::Result<()> {
                     .allow_any_method()
                     .allow_any_header()
             )
-            // .app_data(web::Data::new((user.clone(), password.clone())))
             // Define the routes
             .route("/execute", web::post().to(execute_query))
             .route("/create", web::post().to(create_table_in_snowflake))
