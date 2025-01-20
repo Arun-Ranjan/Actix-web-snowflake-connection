@@ -1,15 +1,14 @@
 use actix_web::{web, App, Error, HttpResponse, HttpServer};
 use snowflake_connector_rs::{SnowflakeAuthMethod, SnowflakeClient, SnowflakeClientConfig};
 use serde::Deserialize;
-use std::fs::File;
+use std::{env, fs::File};
 use csv::ReaderBuilder;
 use actix_cors::Cors;
 use serde::Serialize;
-
+use dotenv::dotenv;
 
 #[derive(Deserialize)]
 #[derive(Debug)]
-
 struct QueryPayload {
     query: String,
 }
@@ -26,15 +25,26 @@ struct Response {
 
 async fn get_snowflake_session() -> Result<snowflake_connector_rs::SnowflakeSession, Error> {
     // Create and return a Snowflake sessionan
+    dotenv().ok();
+    let user = env::var("SNOWFLAKE_USERNAME").expect("error");
+    let password = env::var("SNOWFLAKE_PASSWORD")
+    .expect("SNOWFLAKE_PASSWORD is not set");
+    let account = env::var("SNOWFLAKE_ACCOUNT").expect("erorr");
+    let role = env::var("SNOWFLAKE_ROLE").expect("erorr");
+    let warehouse = env::var("SNOWFLAKE_WAREHOUSE").expect("erorr");
+    let database = env::var("SNOWFLAKE_DATABASE").expect("erorr");
+    let schema = env::var("SNOWFLAKE_SCHEMA").expect("erorr");
+
+
     let client = SnowflakeClient::new(
-        "arunsahu159",
-        SnowflakeAuthMethod::Password("2786Arun!".to_string()),
+        &user,
+        SnowflakeAuthMethod::Password(password),
         SnowflakeClientConfig {
-            account: "xt48043.central-india.azure".to_string(),
-            role: Some("ACCOUNTADMIN".to_string()),
-            warehouse: Some("COMPUTE_WH".to_string()),
-            database: Some("TRAININGDB".to_string()),
-            schema: Some("SALES".to_string()),
+            account,
+            role: Some(role),
+            warehouse: Some(warehouse),
+            database: Some(database),
+            schema: Some(schema),
             timeout: Some(std::time::Duration::from_secs(30)),
         },
     )
@@ -48,11 +58,12 @@ async fn get_snowflake_session() -> Result<snowflake_connector_rs::SnowflakeSess
 
 async fn execute_query(payload: web::Json<QueryPayload>) -> Result<HttpResponse, Error> {
     // Reuse the get_snowflake_session function to get the session
+    // let (user, password) = data.get_ref();
     let session = get_snowflake_session().await?;
 
     // Execute the query
     match session.query(payload.query.clone()).await {
-        Ok(result) => {
+        Ok(_) => {
             let response = Response {
                 message: "Execution Successful!".to_string(),
             };
@@ -70,6 +81,7 @@ async fn execute_query(payload: web::Json<QueryPayload>) -> Result<HttpResponse,
 
 async fn create_table_in_snowflake(payload: web::Json<CreateTablePayload>) -> Result<HttpResponse, Error> {
     // Reuse the get_snowflake_session function to get the session
+    // let (user, password) = data.get_ref();
     let session = get_snowflake_session().await?;
 
     // Execute the CREATE TABLE query
@@ -123,7 +135,10 @@ async fn create_table_in_snowflake(payload: web::Json<CreateTablePayload>) -> Re
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    HttpServer::new(|| {
+    // let args:Vec<String> = env::args().collect();
+    // let user = args[1].clone();
+    // let password = args[2].clone();
+    HttpServer::new(move|| {
         App::new()
             // Add the CORS middleware here
             .wrap(
@@ -132,6 +147,7 @@ async fn main() -> std::io::Result<()> {
                     .allow_any_method()
                     .allow_any_header()
             )
+            // .app_data(web::Data::new((user.clone(), password.clone())))
             // Define the routes
             .route("/execute", web::post().to(execute_query))
             .route("/create", web::post().to(create_table_in_snowflake))
