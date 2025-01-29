@@ -137,7 +137,7 @@ async fn main() -> std::io::Result<()> {
             // Add the CORS middleware here
             .wrap(
                 Cors::default()
-                    .allow_any_origin() // Adjust this to your frontend's URL
+                    .allow_any_origin() 
                     .allow_any_method()
                     .allow_any_header()
             )
